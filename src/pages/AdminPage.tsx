@@ -97,13 +97,18 @@ const AdminPage: React.FC = () => {
 
       {/* 预览区 */}
       <section className="rounded-lg border bg-white p-6 shadow-sm">
-        {/* 主点击：切换 普通题 <-> 选择题；角标按钮：循环 2/3/4 */}
         <QuestionGrid
           total={totalQuestions}
           choiceMap={getChoiceMap()}
-          onQuestionClick={handleQuestionClick}
+          onQuestionClick={id => {
+            if (getQuestionType(id) === 'choice') {
+              // 选择题右上角小按钮循环选项数
+              handleOptionCountCycle(id)
+            } else {
+              handleQuestionClick(id)
+            }
+          }}
           getQuestionType={getQuestionType}
-          onCycleOptionCount={handleOptionCountCycle}
         />
       </section>
 

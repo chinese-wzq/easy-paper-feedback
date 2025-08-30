@@ -13,7 +13,6 @@ export interface QuestionBlockProps {
   selectedOptions?: string[] // 仅选择题
   isWrong?: boolean // 普通题的错题标记
   onClick: () => void
-  onCycleOptionCount?: (id: number) => void // （管理端）循环选项数
   className?: string
 }
 
@@ -26,7 +25,6 @@ const QuestionBlock: React.FC<QuestionBlockProps> = ({
   selectedOptions,
   isWrong,
   onClick,
-  onCycleOptionCount,
   className = ''
 }) => {
   // 计算样式
@@ -62,24 +60,9 @@ const QuestionBlock: React.FC<QuestionBlockProps> = ({
   // 角标：选择题显示选项数
   const corner =
     type === 'choice' && optionCount ? (
-      onCycleOptionCount ? (
-        <button
-          type="button"
-            /* 角标按钮：点击只循环选项数，不触发父级 onClick */
-          onClick={e => {
-            e.stopPropagation()
-            onCycleOptionCount(id)
-          }}
-          className="absolute top-1 right-1 text-[10px] leading-none rounded bg-blue-100 text-blue-600 px-1 border border-blue-200 hover:bg-blue-200"
-          title="循环选项数 2/3/4"
-        >
-          {optionCount}
-        </button>
-      ) : (
-        <span className="absolute top-1 right-1 text-xs rounded-full bg-blue-100 text-blue-500 px-1">
-          {optionCount}
-        </span>
-      )
+      <span className="absolute top-1 right-1 text-xs rounded-full bg-blue-100 text-blue-500 px-1">
+        {optionCount}
+      </span>
     ) : null
 
   return (
