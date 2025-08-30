@@ -64,14 +64,14 @@ export async function readJson<T = unknown>(filename: string): Promise<T | null>
   }
 }
 
-/** 覆盖写入 JSON（public + allowOverwrite），失败抛语义化错误 */
+/** 写入 JSON（public）。说明：当前使用的 @vercel/blob 版本类型中无 allowOverwrite 字段，移除以避免 TS 构建错误。
+ *  若线上出现同名写入冲突（409），需升级 @vercel/blob 到支持 allowOverwrite 的版本并恢复该参数。 */
 export async function writeJson(filename: string, data: unknown) {
   try {
     await put(filename, JSON.stringify(data), {
       access: 'public',
-      allowOverwrite: true, // 允许覆盖，否则同名第二次写入会抛错
-      addRandomSuffix: false // 保持固定文件名
-    })
+      addRandomSuffix: false // 期望保持固定文件名；若版本不支持覆盖可能抛冲突
+    } as any)
   } catch (e: any) {
     throw new Error('BLOB_WRITE_FAILED')
   }
