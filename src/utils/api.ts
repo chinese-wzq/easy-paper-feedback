@@ -80,3 +80,9 @@ export async function fetchResults(): Promise<{ config: PollConfig; results: Pol
   const res = await fetch('/api/admin/results')
   return handleResponse<{ config: PollConfig; results: PollResults }>(res)
 }
+
+/** POST /api/admin/clear-results 清空聚合结果 */
+export async function clearResults(): Promise<PollResults> {
+  const res = await fetch('/api/admin/clear-results', { method: 'POST' })
+  return handleResponse<PollResults>(res)
+}

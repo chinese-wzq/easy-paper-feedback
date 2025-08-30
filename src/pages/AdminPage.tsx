@@ -9,7 +9,7 @@
 import React, { useState, useEffect } from 'react'
 import QuestionGrid from '../components/QuestionGrid'
 import { ChoiceQuestionConfig, PollConfig, PollResults } from '../types/poll'
-import { saveConfig, fetchResults, fetchPollConfig } from '../utils/api'
+import { saveConfig, fetchResults, fetchPollConfig, clearResults } from '../utils/api'
 
 const AdminPage: React.FC = () => {
   // 基础编辑状态
@@ -149,6 +149,20 @@ const AdminPage: React.FC = () => {
     }
   }
 
+  /** 清空当前试卷聚合结果（totalVoters / votes 重置）*/
+  async function handleClearResults() {
+    if (!confirm('确认清空当前试卷所有已统计的投票结果？该操作不可撤销。')) return
+    setError(null)
+    try {
+      const cleared = await clearResults()
+      // 若已经展示结果，则同步清空显示（保留 config）
+      setResultsData(prev => prev ? { config: prev.config, results: cleared } : null)
+      console.log('[admin] 结果已清空')
+    } catch (e: any) {
+      setError(e?.message || '清空结果失败')
+    }
+  }
+
   return (
     <main className="container-responsive py-10 space-y-6">
       {/* 错误条 */}
@@ -162,6 +176,10 @@ const AdminPage: React.FC = () => {
         <h1 className="text-2xl font-bold">管理后台</h1>
         <p className="text-sm text-gray-600">
           使用上方工具开关控制点击行为：开启=切换题型；关闭=循环选项数。
+        </p>
+        <p className="text-xs text-orange-500 leading-relaxed">
+          提示：系统同一时间只统计一套试卷。如果你要开始新的试卷，请先设置好“试卷名称 / 题目总数 / 选择题配置”并保存配置，
+          然后点击“清空投票结果”按钮重置之前的数据，再通知同学开始投票。
         </p>
       </header>
 
@@ -249,7 +267,7 @@ const AdminPage: React.FC = () => {
       </section>
 
       {/* 操作按钮 */}
-      <section className="flex gap-4 justify-end">
+      <section className="flex flex-wrap gap-4 justify-end">
         <button
           className={`px-5 py-2 rounded font-bold text-white ${
             saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'
@@ -265,6 +283,14 @@ const AdminPage: React.FC = () => {
           disabled={saving}
         >
           获取最新结果
+        </button>
+        <button
+          className="px-5 py-2 rounded font-bold bg-red-500 text-white hover:bg-red-600"
+          onClick={handleClearResults}
+          disabled={saving}
+          title="清空当前试卷所有统计数据"
+        >
+          清空投票结果
         </button>
       </section>
 
