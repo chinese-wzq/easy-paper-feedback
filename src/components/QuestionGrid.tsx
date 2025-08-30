@@ -12,6 +12,7 @@ export interface QuestionGridProps {
   wrongSet?: Set<number>
   onQuestionClick: (id: number) => void
   getQuestionType: (id: number) => 'normal' | 'choice'
+  onCycleOptionCount?: (id: number) => void // （管理端）循环选项数
   className?: string
 }
 
@@ -21,6 +22,7 @@ const QuestionGrid: React.FC<QuestionGridProps> = ({
   wrongSet,
   onQuestionClick,
   getQuestionType,
+  onCycleOptionCount,
   className = ''
 }) => {
   // 渲染题目方块列表
@@ -38,6 +40,7 @@ const QuestionGrid: React.FC<QuestionGridProps> = ({
         selectedOptions={choiceCfg?.selectedOptions}
         isWrong={isWrong}
         onClick={() => onQuestionClick(i)}
+        onCycleOptionCount={onCycleOptionCount}
         className=""
       />
     )
