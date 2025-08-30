@@ -1,0 +1,7 @@
+{
+  "//": "Vercel 配置：确保 /api 保持函数路由；其余路径走单页 index.html 以支持刷新 /admin 等客户端路由。",
+  "rewrites": [
+    { "source": "/api/:match*", "destination": "/api/:match*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
