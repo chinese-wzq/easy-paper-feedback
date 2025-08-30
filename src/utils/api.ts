@@ -1,33 +1,82 @@
-// src/utils/api.ts
-// 投票相关本地假 API，后续可接后端
-
-import { PollConfig, FrontendVoteState } from '../types/poll'
-
 /**
- * 获取投票配置（本地 mock 数据）
+ * 真实后端 API 封装（第三阶段）
+ * 替换原本的本地 mock
  */
-export async function fetchPollConfig(): Promise<PollConfig> {
-  // 假数据，后续可从后端获取
+import { PollConfig, FrontendVoteState, VoteSubmission, ApiResponse, PollResults } from '../types/poll'
+
+/** 通用请求封装：失败时抛出 Error，message=error code */
+async function handleResponse<T>(res: Response): Promise<T> {
+  let json: ApiResponse<T>
+  try {
+    json = await res.json()
+  } catch {
+    throw new Error('INVALID_JSON')
+  }
+  if (!json.success) {
+    throw new Error(json.error || 'UNKNOWN_ERROR')
+  }
+  return json.data as T
+}
+
+/** GET /api/poll */
+export async function fetchPollConfig(): Promise<PollConfig | null> {
+  const res = await fetch('/api/poll')
+  const data = await res.json() as ApiResponse<PollConfig>
+  if (!data.success) {
+    if (data.error === 'NO_CONFIG') return null
+    throw new Error(data.error || 'UNKNOWN_ERROR')
+  }
+  return data.data!
+}
+
+/** POST /api/admin/config */
+export async function saveConfig(payload: {
+  title: string
+  totalQuestions: number
+  choiceQuestions: Record<number, { optionCount: number }>
+  isActive?: boolean
+  id?: string
+}): Promise<PollConfig> {
+  const res = await fetch('/api/admin/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  return handleResponse<PollConfig>(res)
+}
+
+/** 将前端本地状态转换为提交载荷 */
+function mapVoteState(state: FrontendVoteState): VoteSubmission {
   return {
-    id: 'demo',
-    title: '试卷错题反馈',
-    totalQuestions: 20,
-    choiceQuestions: {
-      2: { optionCount: 4 },
-      5: { optionCount: 3 },
-      9: { optionCount: 4 }
-    },
-    isActive: true,
-    createdAt: '2025-08-30T00:00:00.000Z',
-    updatedAt: '2025-08-30T00:00:00.000Z'
+    wrongQuestions: Array.from(state.wrongSet),
+    choiceSelections: Object.fromEntries(
+      Object.entries(state.choiceSelections).map(([k, set]) => [k, Array.from(set)])
+    )
   }
 }
 
-/**
- * 提交投票（仅 console.log，模拟异步）
- */
-export async function submitVote(vote: FrontendVoteState): Promise<{ success: boolean }> {
-  // 输出到控制台，后续可接后端
-  console.log('提交投票：', vote)
-  return Promise.resolve({ success: true })
+/** POST /api/vote （含一次简单重试：网络或 5xx） */
+export async function submitVote(frontState: FrontendVoteState): Promise<void> {
+  const submission = mapVoteState(frontState)
+  async function once() {
+    const res = await fetch('/api/vote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(submission)
+    })
+    await handleResponse<null | { ok: boolean }>(res)
+  }
+  try {
+    await once()
+  } catch (e: any) {
+    // 简单重试（只重试一次）
+    console.warn('submitVote 首次失败，重试一次：', e?.message)
+    await once()
+  }
+}
+
+/** GET /api/admin/results */
+export async function fetchResults(): Promise<{ config: PollConfig; results: PollResults }> {
+  const res = await fetch('/api/admin/results')
+  return handleResponse<{ config: PollConfig; results: PollResults }>(res)
 }
