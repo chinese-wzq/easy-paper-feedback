@@ -1,27 +1,20 @@
 /**
  * 基于 Vercel Blob 的简易 JSON 读写工具
- * 固定文件名：
- *  - poll-config.json
- *  - poll-results.json
- *
- * 注意：这里不做复杂的并发控制（无 ETag / CAS），仅提供基础读写。
+ * 注意：
+ *  - 读取：@vercel/blob 不再提供 get，直接 fetch(blob.url)
+ *  - 覆盖写入：>=1.0.0 同路径重复 put 需显式 allowOverwrite:true
  */
-import { put, list, get } from '@vercel/blob'
+import { put, list } from '@vercel/blob'
 
-/** 固定文件名常量 */
 export const CONFIG_FILENAME = 'poll-config.json'
 export const RESULTS_FILENAME = 'poll-results.json'
 
-/** 简化的 blob 列表项类型（避免隐式 any） */
 interface SimpleBlobItem {
   pathname: string
   url: string
 }
 
-/**
- * 在 blob 列表中查找指定文件的下载 URL
- * 兼容 pathname 可能包含子路径的情况
- */
+/** 查找文件对应的公开 URL（不存在返回 null） */
 async function findBlobUrl(filename: string): Promise<string | null> {
   const { blobs } = await list()
   const hit = (blobs as SimpleBlobItem[]).find(
@@ -30,29 +23,25 @@ async function findBlobUrl(filename: string): Promise<string | null> {
   return hit ? hit.url : null
 }
 
-/**
- * 读取 JSON（若不存在返回 null）
- */
+/** 读取 JSON（若不存在返回 null） */
 export async function readJson<T = unknown>(filename: string): Promise<T | null> {
   const url = await findBlobUrl(filename)
   if (!url) return null
-  const res = await get(url)
-  if (!res.ok) {
-    throw new Error(`GET_FAILED_${filename}`)
-  }
+  const res = await fetch(url, { cache: 'no-cache' })
+  if (!res.ok) throw new Error(`GET_FAILED_${filename}`)
   return (await res.json()) as T
 }
 
-/**
- * 覆盖写入 JSON（public 访问权限）
- */
+/** 覆盖写入 JSON（public + allowOverwrite） */
 export async function writeJson(filename: string, data: unknown) {
-  await put(filename, JSON.stringify(data), { access: 'public' })
+  await put(filename, JSON.stringify(data), {
+    access: 'public',
+    allowOverwrite: true, // 允许覆盖，否则同名第二次写入会抛错
+    addRandomSuffix: false // 保持固定文件名
+  })
 }
 
-/**
- * 尝试读取，不存在则用 factory 创建并写入再返回
- */
+/** 读取或初始化 */
 export async function readOrInit<T>(filename: string, factory: () => T): Promise<T> {
   const existing = await readJson<T>(filename)
   if (existing) return existing
