@@ -1,6 +1,6 @@
 // src/components/QuestionGrid.tsx
 import React from 'react'
-import QuestionBlock, { QuestionBlockProps } from './QuestionBlock'
+import QuestionBlock from './QuestionBlock'
 
 /**
  * 题目网格组件

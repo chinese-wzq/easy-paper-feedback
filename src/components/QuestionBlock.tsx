@@ -16,7 +16,7 @@ export interface QuestionBlockProps {
   className?: string
 }
 
-const optionLabels = ['A', 'B', 'C', 'D']
+/* 无用变量已移除 */
 
 const QuestionBlock: React.FC<QuestionBlockProps> = ({
   id,
