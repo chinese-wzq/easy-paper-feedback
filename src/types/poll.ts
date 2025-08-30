@@ -19,29 +19,36 @@ export interface PollOption {
 }
 
 /* 投票配置 */
+/**
+ * 扩展后的投票配置类型，兼容本地 mock 数据结构
+ */
 export interface PollConfig {
-  /* 投票配置 ID（例如某次考试/试卷的唯一标识） */
   id: string;
-  /* 标题：例如 “2024 上学期期末数学试卷讲解优先级投票” */
   title: string;
-  /* 描述：向学生说明投票规则 */
-  description?: string;
-  /* 选项列表 */
-  options: PollOption[];
-  /* 是否允许多选 */
-  allowMultiple: boolean;
-  /* 是否允许重复提交（默认 false） */
-  allowDuplicate?: boolean;
-  /* 每个学生最多可选几个（仅 allowMultiple = true 时生效；undefined 代表不限制） */
-  maxSelectCount?: number;
-  /* 是否关闭（关闭后学生不可再投） */
-  closed?: boolean;
-  /* 创建时间 ISO 字符串 */
+  totalQuestions: number; // 题目总数
+  choiceQuestions: Record<number, ChoiceQuestionConfig>; // 选择题配置，key 为题号
+  isActive: boolean;
   createdAt: string;
-  /* 更新时间 ISO 字符串 */
-  updatedAt?: string;
-  /* 额外元数据：可扩展存储任意结构化信息 */
+  updatedAt: string;
+  // 可选：描述、meta 等
+  description?: string;
   meta?: Record<string, unknown>;
+}
+
+/**
+ * 选择题配置
+ */
+export interface ChoiceQuestionConfig {
+  optionCount: number; // 选项数（2~4）
+  selectedOptions?: string[]; // 学生端选项（A/B/C/D）
+}
+
+/**
+ * 学生端临时投票状态
+ */
+export interface FrontendVoteState {
+  wrongSet: Set<number>; // 错题题号集合
+  choiceSelections: Record<number, Set<string>>; // 选择题已选项
 }
 
 /* 学生单次投票提交 */
