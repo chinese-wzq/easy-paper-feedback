@@ -181,6 +181,9 @@ const AdminPage: React.FC = () => {
           提示：系统同一时间只统计一套试卷。如果你要开始新的试卷，请先设置好“试卷名称 / 题目总数 / 选择题配置”并保存配置，
           然后点击“清空投票结果”按钮重置之前的数据，再通知同学开始投票。
         </p>
+        <p className="text-xs text-amber-600 leading-relaxed bg-amber-50 border border-amber-200 rounded px-3 py-2">
+          由于技术原因，数据同步存在约 1 分钟延迟。请在设置并保存好试卷后稍等片刻，再进入学生投票界面确认配置已生效后再通知同学开始投票。
+        </p>
       </header>
 
       {/* 工具与基础配置 */}
