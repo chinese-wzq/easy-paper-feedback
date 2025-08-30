@@ -113,7 +113,9 @@ const StudentVotePage: React.FC = () => {
       )}
 
       <header className="space-y-2">
-        <h1 className="text-2xl font-bold">试卷讲解优先级投票</h1>
+        <h1 className="text-2xl font-bold">
+          {config ? config.title : '试卷讲解优先级投票'}
+        </h1>
         <p className="text-sm text-gray-600">
           请选择你认为需要优先讲解的题目，错题直接点击标记，选择题可多选选项。
         </p>

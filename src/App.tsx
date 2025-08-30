@@ -22,12 +22,6 @@ function NavBar() {
         <Link to="/" className={`text-sm hover:text-blue-500 ${isActive('/')}`}>
           投票
         </Link>
-        <Link
-          to="/admin"
-          className={`text-sm hover:text-blue-500 ${isActive('/admin')}`}
-        >
-          管理
-        </Link>
         <span className="ml-auto text-xs text-gray-400">
           基础版本 · 占位 UI
         </span>

@@ -6,27 +6,49 @@
  *  - 刷新结果 => GET /api/admin/results (console.log 输出)
  *  - 错误提示条
  */
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import QuestionGrid from '../components/QuestionGrid'
 import { ChoiceQuestionConfig, PollConfig, PollResults } from '../types/poll'
-import { saveConfig, fetchResults } from '../utils/api'
+import { saveConfig, fetchResults, fetchPollConfig } from '../utils/api'
 
 const AdminPage: React.FC = () => {
   // 基础编辑状态
   const [totalQuestions, setTotalQuestions] = useState<number>(20)
+  const [title, setTitle] = useState<string>('试卷错题反馈') // 新增：试卷名称可编辑
   const [choiceConfigMap, setChoiceConfigMap] = useState<Record<number, ChoiceQuestionConfig>>({
     2: { optionCount: 4 },
     5: { optionCount: 3 },
     9: { optionCount: 4 }
   })
   const [editTypeMode, setEditTypeMode] = useState<boolean>(true)
-
+  
   // UI 状态
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [lastSavedConfig, setLastSavedConfig] = useState<PollConfig | null>(null)
   const [resultsData, setResultsData] = useState<{ config: PollConfig; results: PollResults } | null>(null)
-
+  // 首次挂载：尝试拉取已存在配置并回填到编辑器
+  useEffect(() => {
+    (async () => {
+      try {
+        const cfg = await fetchPollConfig()
+        if (cfg) {
+          setTitle(cfg.title)
+          setTotalQuestions(cfg.totalQuestions)
+          const map: Record<number, ChoiceQuestionConfig> = {}
+            Object.entries(cfg.choiceQuestions).forEach(([k, v]) => {
+              map[Number(k)] = { optionCount: v.optionCount }
+            })
+          setChoiceConfigMap(map)
+          setLastSavedConfig(cfg)
+        }
+      } catch (e: any) {
+        console.warn('[admin] 加载已有配置失败', e)
+        setError(e?.message || '加载配置失败')
+      }
+    })()
+  }, [])
+  
   /** 判断题型 */
   function getQuestionType(id: number) {
     return choiceConfigMap[id] ? 'choice' : 'normal'
@@ -96,7 +118,7 @@ const AdminPage: React.FC = () => {
     }
 
     const payload = {
-      title: '试卷错题反馈',
+      title, // 使用可编辑试卷名称
       totalQuestions,
       choiceQuestions: Object.fromEntries(
         (Object.entries(choiceConfigMap) as [string, ChoiceQuestionConfig][])
@@ -146,21 +168,34 @@ const AdminPage: React.FC = () => {
       {/* 工具与基础配置 */}
       <section className="rounded-lg border bg-white p-6 shadow-sm space-y-5">
         <div className="flex flex-wrap items-center gap-8">
-          {/* 题目总数设置 */}
-            <div className="flex items-center gap-2">
-              <label className="text-gray-700 font-medium">题目总数：</label>
-              <input
-                type="number"
-                min={1}
-                max={200}
-                value={totalQuestions}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setTotalQuestions(Number(e.target.value) || 0)
-                }
-                className="w-24 px-2 py-1 border rounded"
-              />
-            </div>
+          {/* 试卷名称设置 */}
+          <div className="flex items-center gap-2">
+            <label className="text-gray-700 font-medium">试卷名称：</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
+              placeholder="输入试卷名称"
+              className="w-56 px-2 py-1 border rounded"
+              maxLength={50}
+            />
+          </div>
 
+          {/* 题目总数设置 */}
+          <div className="flex items-center gap-2">
+            <label className="text-gray-700 font-medium">题目总数：</label>
+            <input
+              type="number"
+              min={1}
+              max={200}
+              value={totalQuestions}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setTotalQuestions(Number(e.target.value) || 0)
+              }
+              className="w-24 px-2 py-1 border rounded"
+            />
+          </div>
+          
           {/* 题型切换模式开关 */}
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-gray-700">
