@@ -8,7 +8,7 @@
  */
 import React, { useState } from 'react'
 import QuestionGrid from '../components/QuestionGrid'
-import { ChoiceQuestionConfig, PollConfig } from '../types/poll'
+import { ChoiceQuestionConfig, PollConfig, PollResults } from '../types/poll'
 import { saveConfig, fetchResults } from '../utils/api'
 
 const AdminPage: React.FC = () => {
@@ -25,6 +25,7 @@ const AdminPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [lastSavedConfig, setLastSavedConfig] = useState<PollConfig | null>(null)
+  const [resultsData, setResultsData] = useState<{ config: PollConfig; results: PollResults } | null>(null)
 
   /** 判断题型 */
   function getQuestionType(id: number) {
@@ -33,7 +34,7 @@ const AdminPage: React.FC = () => {
 
   /** 切换题型（普通 ↔ 选择） */
   function toggleQuestionType(id: number) {
-    setChoiceConfigMap(prev => {
+    setChoiceConfigMap((prev: Record<number, ChoiceQuestionConfig>) => {
       if (prev[id]) {
         const next = { ...prev }
         delete next[id]
@@ -49,7 +50,7 @@ const AdminPage: React.FC = () => {
     if (!cfg) return
     const curr = cfg.optionCount
     const next = curr === 2 ? 3 : curr === 3 ? 4 : 2
-    setChoiceConfigMap(prev => ({ ...prev, [id]: { optionCount: next } }))
+    setChoiceConfigMap((prev: Record<number, ChoiceQuestionConfig>) => ({ ...prev, [id]: { optionCount: next } }))
   }
 
   /** 题目格子点击主行为 */
@@ -98,7 +99,8 @@ const AdminPage: React.FC = () => {
       title: '试卷错题反馈',
       totalQuestions,
       choiceQuestions: Object.fromEntries(
-        Object.entries(choiceConfigMap).map(([k, v]) => [Number(k), { optionCount: v.optionCount }])
+        (Object.entries(choiceConfigMap) as [string, ChoiceQuestionConfig][])
+          .map(([k, v]) => [Number(k), { optionCount: v.optionCount }])
       )
     }
     setSaving(true)
@@ -118,6 +120,7 @@ const AdminPage: React.FC = () => {
     setError(null)
     try {
       const data = await fetchResults()
+      setResultsData(data)
       console.log('[admin] 当前配置 + 结果：', data)
     } catch (e: any) {
       setError(e?.message || '拉取结果失败')
@@ -151,7 +154,9 @@ const AdminPage: React.FC = () => {
                 min={1}
                 max={200}
                 value={totalQuestions}
-                onChange={e => setTotalQuestions(Number(e.target.value) || 0)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setTotalQuestions(Number(e.target.value) || 0)
+                }
                 className="w-24 px-2 py-1 border rounded"
               />
             </div>
@@ -162,7 +167,9 @@ const AdminPage: React.FC = () => {
               <input
                 type="checkbox"
                 checked={editTypeMode}
-                onChange={e => setEditTypeMode(e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setEditTypeMode(e.target.checked)
+                }
                 className="accent-blue-600 w-4 h-4"
               />
               <span className="font-medium">题型切换模式</span>
@@ -222,9 +229,83 @@ const AdminPage: React.FC = () => {
           onClick={handleRefreshResults}
           disabled={saving}
         >
-          刷新结果(打印)
+          获取最新结果
         </button>
       </section>
+
+      {/* 结果展示 */}
+      {resultsData && (
+        <section className="mt-6 rounded-lg border bg-white p-6 shadow-sm space-y-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            结果概览
+            <span className="text-xs font-normal text-gray-500">
+              更新时间：{new Date(resultsData.results.updatedAt).toLocaleTimeString()}
+            </span>
+          </h2>
+          <div className="text-sm flex flex-wrap gap-6">
+            <span>
+              投票人数：
+              <strong className="ml-1 text-blue-600">{resultsData.results.totalVoters}</strong>
+            </span>
+            <span>
+              题目总数：
+              <strong className="ml-1 text-blue-600">{resultsData.config.totalQuestions}</strong>
+            </span>
+            <span>
+              已统计题目数：
+              <strong className="ml-1 text-blue-600">{Object.keys(resultsData.results.votes).length}</strong>
+            </span>
+          </div>
+          <div className="overflow-auto border rounded">
+            <table className="min-w-full text-xs">
+              <thead className="bg-gray-50">
+                <tr className="text-gray-600">
+                  <th className="px-2 py-1 text-left font-medium">题号</th>
+                  <th className="px-2 py-1 text-left font-medium">错题次数</th>
+                  <th className="px-2 py-1 text-left font-medium">选项票数</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(resultsData.results.votes)
+                  .sort((a, b) => Number(a[0]) - Number(b[0]))
+                  .map(([qid, v]) => {
+                    const choiceEntries = Object.entries(v.choiceVotes).sort(
+                      (a, b) => Number(a[0]) - Number(b[0])
+                    )
+                    return (
+                      <tr key={qid} className="border-t">
+                        <td className="px-2 py-1 font-mono">{qid}</td>
+                        <td className="px-2 py-1">{v.wrongCount || 0}</td>
+                        <td className="px-2 py-1">
+                          {choiceEntries.length === 0
+                            ? <span className="text-gray-400">—</span>
+                            : choiceEntries.map(([opt, cnt]) => (
+                                <span
+                                  key={opt}
+                                  className="inline-block px-2 py-0.5 mr-2 mb-1 rounded bg-indigo-50 text-indigo-600"
+                                >
+                                  {opt}:{cnt}
+                                </span>
+                              ))}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                {Object.keys(resultsData.results.votes).length === 0 && (
+                  <tr>
+                    <td
+                      className="px-2 py-4 text-center text-gray-400"
+                      colSpan={3}
+                    >
+                      暂无统计数据
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </main>
   )
 }
