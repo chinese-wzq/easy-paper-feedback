@@ -43,8 +43,20 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
-      <footer className="py-6 text-center text-xs text-gray-400">
-        © {new Date().getFullYear()} 试卷讲解反馈收集系统
+      <footer className="py-6 text-center text-xs text-gray-400 space-y-2">
+        <div>© {new Date().getFullYear()} 试卷讲解反馈收集系统</div>
+        <a
+          href="https://github.com/chinese-wzq/easy-paper-feedback"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block"
+        >
+          <img
+            src="https://img.shields.io/badge/GitHub-easy--paper--feedback-181717?logo=github"
+            alt="GitHub 仓库: easy-paper-feedback"
+            className="h-6"
+          />
+        </a>
       </footer>
     </div>
   )
